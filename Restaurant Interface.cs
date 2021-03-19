@@ -14,6 +14,7 @@ namespace Project3
     {
         public Form1()
         {
+            //Initializes the form and sets the date to the current date
             InitializeComponent();
             lblDateText.Text = DateTime.Now.ToString(" dddd, MMMM d, yyyy");
             btnSummary.Enabled = false;
@@ -21,12 +22,15 @@ namespace Project3
 
         private void btnExit_Click(object sender, EventArgs e)
         {
+            //Closes the application
             Application.Exit();
         }
 
         private void btnCalc_Click(object sender, EventArgs e)
         {
+            //Calculates the prices based on what the person orders and how many guests there are
             int numOfGuests = 0;
+            //This checks to see if a valid number has been entered
             if(!int.TryParse(txtNumOfGuests.Text, out numOfGuests))
             {
                 MessageBox.Show("You must enter a valid guest amount!");
@@ -102,7 +106,7 @@ namespace Project3
             {
                 drinkPrice = 0;
             }
-
+            //Calculates the total price and presents a summary
             total = (numOfGuests * menuPrice) + (numOfGuests * saucePrice) + (numOfGuests * sidePrice) + (numOfGuests * drinkPrice);
             txtAmountDue.Text = total.ToString("C");
             btnSummary.Enabled = true;
@@ -112,6 +116,7 @@ namespace Project3
 
         private void btnClear_Click(object sender, EventArgs e)
         {
+            //Clears the application of all values so the process can start all over again
             txtAmountDue.Clear();
             txtNumOfGuests.Clear();
             rdoChicken.Checked = false;
@@ -126,6 +131,7 @@ namespace Project3
 
         private void btnSummary_Click(object sender, EventArgs e)
         {
+            //Displays the summary
             int numOfGuests = int.Parse(txtNumOfGuests.Text);
             double menuPrice = 0;
             double saucePrice = 0;
@@ -216,7 +222,7 @@ namespace Project3
                 drinkPrice = 0;
                 drinkItems = "nothing";
             }
-
+            //Displays the final amount and what they ordered. Also asks if the user would like to clear and start over again
             total = menuPrice + saucePrice + sidePrice + drinkPrice;
             string message = "Your meal is " + menuItem + ", and costs: " + menuPrice.ToString("C") + "\nYour sauce is " + sauceItem + ", and costs: " + saucePrice.ToString("C") + "\nYour side is " + sideItem + ", and costs: " + sidePrice.ToString("C") + "\nYour drink option is " + drinkItems + ", and costs: " + drinkPrice.ToString("C") + "\nThe total is: " + total.ToString("C") + "\nThe amount of guests is: " + numOfGuests  + "\n" + "\nWould you like to clear everything?";
             string title = "Summary";
