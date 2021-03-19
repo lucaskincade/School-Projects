@@ -12,6 +12,7 @@ namespace Project_4
 {
     public partial class Form1 : Form
     {
+    //This initializes the data tables
         DataTable dtColleges = null;
         DataTable dtMajors = null;
         DataTable dtCourse = null, dtTerms = null;
@@ -23,11 +24,13 @@ namespace Project_4
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            //Exits the application
             Application.Exit();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            //On form load this will set the form height and width. Will also show the first screen and populate the data tables.
             this.Height = 640;
             this.Width = 670;
             showMainMenu();
@@ -41,6 +44,7 @@ namespace Project_4
 
         private void showMainMenu()
         {
+            //Shows the main menu page and hides the other pages
             pnlMain.Dock = DockStyle.Fill;
             pnlMain.Visible = true;
             pnlStudent.Visible = false;
@@ -49,6 +53,7 @@ namespace Project_4
 
         private void showStudentMenu()
         {
+            //Shows the Student Menu page and hides the other pages.
             pnlStudent.Dock = DockStyle.Fill;
             pnlStudent.Visible = true;
             pnlMain.Visible = false;
@@ -57,6 +62,7 @@ namespace Project_4
 
         private void showGradeMenu()
         {
+            //Shows the grade menu page and hides the other pages
             pnlGrades.Dock = DockStyle.Fill;
             pnlGrades.Visible = true;
             pnlStudent.Visible = false;
@@ -65,17 +71,20 @@ namespace Project_4
 
         private void mainMenuToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            //Runs the main menu method
             showMainMenu();
         }
 
         private void studentsToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            //Runs the student menu method
             showStudentMenu();
             RefreshStudentDGV();
         }
 
         private void gradesToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            //Runs the grade menu method
             showGradeMenu();
             PopulateStudentDropDown();
             RefreshGradeDGV();
@@ -83,7 +92,7 @@ namespace Project_4
 
         private void PopulateCollegeDropDown()
         {
-            
+            //Calls upon the walton database to gather information and display a list of colleges offered at the school
             Walton_DB.FillDataTable_ViaSql(ref dtColleges, "SELECT CollegeID, College FROM tbl_Colleges order by College");
             
             foreach (DataRow dr in dtColleges.Rows)
@@ -94,6 +103,7 @@ namespace Project_4
 
         private void PopulateMajorDropDown()
         {
+            //Calls upon the walton database to get a list of majors offered at the school
             cboMajor.Items.Clear();
             Walton_DB.FillDataTable_ViaSql(ref dtMajors, "SELECT MajorID, Major FROM tbl_Majors where CollegeID = " + dtColleges.Select("College = '" + cboCollege.Text + "'")[0]["CollegeID"].ToString());
             if (dtMajors != null && dtMajors.Rows.Count > 0)
@@ -107,6 +117,7 @@ namespace Project_4
 
         private void cboCollege_SelectedIndexChanged(object sender, EventArgs e)
         {
+            //If there are no majors selected, it will populate
             if (cboCollege.SelectedIndex != -1)
             {
                 PopulateMajorDropDown();
@@ -115,6 +126,7 @@ namespace Project_4
 
         private void RefreshStudentDGV()
         {
+            //Updates the grid with the student information
             DataTable dtStudents = null;
             Walton_DB.FillDataTable_ViaSql(ref dtStudents, "SELECT tbl_Students.StudentID, tbl_Students.StudentName, tbl_Colleges.College, tbl_Majors.Major FROM tbl_Students INNER JOIN tbl_Colleges ON tbl_Students.StudentCollege = tbl_Colleges.CollegeID INNER JOIN tbl_Majors ON tbl_Students.StudentMajor = tbl_Majors.MajorID");
 
@@ -127,6 +139,7 @@ namespace Project_4
 
         private void PopulateStudentDropDown()
         {
+            //Calls upon the walton database to populate the student table with student names
             Walton_DB.FillDataTable_ViaSql(ref dtStudents, "SELECT StudentID, StudentName FROM tbl_Students order by StudentName");
             if (dtStudents != null && dtStudents.Rows.Count > 0)
             {
@@ -139,6 +152,7 @@ namespace Project_4
 
         private void PopulateCourseGradeTerm()
         {
+            //Adds the corresponding grade to the class
             cboGrade.Items.Add("A");
             cboGrade.Items.Add("B");
             cboGrade.Items.Add("C");
@@ -164,6 +178,7 @@ namespace Project_4
 
         private void RefreshGradeDGV()
         {
+            //Refreshes and updates the grades
             DataTable dtStudents = null;
             Walton_DB.FillDataTable_ViaSql(ref dtStudents, "SELECT tbl_Students.StudentName, tbl_Courses.Course, tbl_Terms.Term, tbl_Grades.Grade FROM tbl_Grades INNER JOIN tbl_Students ON tbl_Grades.Student = tbl_Students.StudentID INNER JOIN tbl_Courses ON tbl_Grades.Course = tbl_Courses.CourseID INNER JOIN tbl_Terms ON tbl_Grades.Term = tbl_Terms.TermID");
 
@@ -176,6 +191,7 @@ namespace Project_4
 
         private void btnAddGrade_Click(object sender, EventArgs e)
         {
+            //Adds the grade to the class for that particular student
             if (cboStudent.SelectedIndex == -1)
             {
                 MessageBox.Show("You must select a student.");
@@ -215,6 +231,7 @@ namespace Project_4
 
         private void btnAddStudent_Click(object sender, EventArgs e)
         {
+            //Adds a student to the table
             if(txtName.Text == "")
             {
                 MessageBox.Show("Please enter a name.");
