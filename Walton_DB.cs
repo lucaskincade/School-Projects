@@ -18,7 +18,7 @@ public class Walton_DB
                 if (lo_Connection == null)
                 {
                     lo_Connection = new SqlConnection();
-                    lo_Connection.ConnectionString = "Data Source=isys3393.walton.uark.edu;Initial Catalog=3393_Shipp_Fall2020p;user id=lpkincad;password=BizDevPass10812727!;Persist Security Info=False;";
+                    lo_Connection.ConnectionString = "Data Source=************;Initial Catalog=***********;user id=**********;password=**************!;Persist Security Info=False;";
                 }
 
                 if (lo_Connection.State == ConnectionState.Closed)
