@@ -3,11 +3,14 @@ using System.Collections;
 using System.Data;
 using System.Data.SqlClient;
 
+//This is in connection to the Student Grade CS file that opens a connection between the application and the walton database so that data can be pulled through SQL
 public class Walton_DB
 {
+    //Global variabls to be used
     private static SqlConnection lo_Connection;
     public const int CommandTimeOutSeconds = 1200;
-
+    
+    //Opens a connection with the database
     private static bool OpenConnection()
     {
         int Retry = 2;
@@ -17,6 +20,7 @@ public class Walton_DB
             {
                 if (lo_Connection == null)
                 {
+                    //Changed the connection, ID, and password to ******
                     lo_Connection = new SqlConnection();
                     lo_Connection.ConnectionString = "Data Source=************;Initial Catalog=***********;user id=**********;password=**************!;Persist Security Info=False;";
                 }
