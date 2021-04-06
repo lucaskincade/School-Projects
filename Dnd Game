@@ -1,0 +1,464 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+//This is for the use of SQL
+using System.Data.SqlClient;
+
+namespace DnD_Assignment
+{
+    public partial class Form1 : Form
+    {
+        ///////////////////////////////////////
+        ///Opens a conneciton to the walton database
+        //Masking database login
+        string connectionString = "Data Source=***************;Initial Catalog=**************;User ID=**************;Password=**********";
+        //Creates class level sql variables to be used throughout code
+        SqlConnection connection;
+        SqlCommand command;
+        SqlDataReader dataReader;
+        ///////////////////////////////////////
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            //Try catch for error processing
+            try
+            {
+                //On form load, the combo box will populate with character names
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                string sql = "SELECT CharacterName FROM Character";
+                command = new SqlCommand(sql, connection);
+                dataReader = command.ExecuteReader();
+                while (dataReader.Read())
+                {
+                    cmbChar.Items.Add(dataReader[0].ToString());
+                }
+            }catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+            connection.Close();
+            command.Dispose();
+            dataReader.Close();
+        }
+
+        private void cmbChar_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                //Checks to see if a character is selected
+                if (cmbChar.SelectedIndex > -1)
+                {
+                    //Populates the character stats
+                    connection = new SqlConnection(connectionString);
+                    connection.Open();
+                    string sql = "SELECT CharacterID, PlayerName, Race, Class, Strength, Dexterity, Intelligence, HitPoints FROM Character WHERE CharacterName = '" + cmbChar.SelectedItem.ToString() + "'";
+                    command = new SqlCommand(sql, connection);
+                    dataReader = command.ExecuteReader();
+                    while (dataReader.Read())
+                    {
+                        //Translates the SQL columns into text for the textboxes
+                        txtCID.Text = dataReader[0].ToString();
+                        txtPlayerName.Text = dataReader[1].ToString();
+                        txtRace.Text = dataReader[2].ToString();
+                        txtClass.Text = dataReader[3].ToString();
+                        txtStrength.Text = dataReader[4].ToString();
+                        txtDexterity.Text = dataReader[5].ToString();
+                        txtIntelligence.Text = dataReader[6].ToString();
+                        txtHitpoints.Text = dataReader[7].ToString();
+                    }
+                    connection.Close();
+                    command.Dispose();
+                    dataReader.Close();
+
+                    //Clears the list box to prevent duplication
+                    listBox1.Items.Clear();
+                    //Populates the list box
+                    connection = new SqlConnection(connectionString);
+                    connection.Open();
+                    sql = "SELECT EquipmentName FROM Equipment";
+                    command = new SqlCommand(sql, connection);
+                    dataReader = command.ExecuteReader();
+                    while (dataReader.Read())
+                    {
+                        listBox1.Items.Add(dataReader[0].ToString());
+                    }
+                    connection.Close();
+                    command.Dispose();
+                    dataReader.Close();
+
+                    //Populates the datagrid
+                    var sql2 = "SELECT * FROM Inventory WHERE CharacterID = '" + txtCID.Text + "'";
+                    var da = new SqlDataAdapter(sql2, connection);
+                    var ds = new DataSet();
+                    da.Fill(ds);
+                    dataGridView1.DataSource = ds.Tables[0];
+                }
+                else
+                {
+                    //Message telling the user to select a character
+                    MessageBox.Show("Please select a character.");
+                }
+            }catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+        }
+
+        private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                //Populates the text boxes below the list box
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                string sql = "SELECT EquipmentID, Type, Size, Rarity FROM Equipment WHERE EquipmentName = '" + listBox1.SelectedItem.ToString() + "'";
+                command = new SqlCommand(sql, connection);
+                dataReader = command.ExecuteReader();
+                while (dataReader.Read())
+                {
+                    txtEquipName.Text = dataReader[0].ToString();
+                    txtType.Text = dataReader[1].ToString();
+                    txtSize.Text = dataReader[2].ToString();
+                    txtRarity.Text = dataReader[3].ToString();
+                }
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+            connection.Close();
+            command.Dispose();
+            dataReader.Close();
+        }
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            try
+            {
+                //Populates the text boxes related to inventory
+                txtADate.Text = dataGridView1.CurrentRow.Cells[3].Value.ToString();
+                txtLDate.Text = dataGridView1.CurrentRow.Cells[4].Value.ToString();
+                txtStatus.Text = dataGridView1.CurrentRow.Cells[5].Value.ToString();
+                txtSlot.Text = dataGridView1.CurrentRow.Cells[6].Value.ToString();
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+        }
+
+        private void btnInsertStats_Click(object sender, EventArgs e)
+        {
+            //Try catch to process possible errors
+            try
+            {
+                //Insert character values into SQL
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                //The returned integer from SQL
+                int answer;
+                //Placeholder values
+                string sql = "INSERT INTO Character VALUES (@name, @playername, @race, @class, @str, @dex, @int, @hp)";
+                command = new SqlCommand(sql, connection);
+
+                //Placeholder values are being initialized and SQL can read them
+                command.Parameters.AddWithValue("@name", txtCharacterName.Text);
+                command.Parameters.AddWithValue("@playername", txtPlayerName.Text);
+                command.Parameters.AddWithValue("@race", txtRace.Text);
+                command.Parameters.AddWithValue("@class", txtClass.Text);
+                command.Parameters.AddWithValue("@str", txtStrength.Text);
+                command.Parameters.AddWithValue("@dex", txtDexterity.Text);
+                command.Parameters.AddWithValue("@int", txtIntelligence.Text);
+                command.Parameters.AddWithValue("@hp", txtHitpoints.Text);
+
+                answer = command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have created " + answer + " character!");
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnUpdateStats_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //Update character values in SQL
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                int answer;
+                string sql = "UPDATE Character SET CharacterName = @name, PlayerName=@playername, Race=@race, Class=@class, Strength=@str, Dexterity=@dex, Intelligence=@int, HitPoints=@hp WHERE CharacterID = @CID";
+                command = new SqlCommand(sql, connection);
+
+                command.Parameters.AddWithValue("@name", cmbChar.SelectedItem.ToString());
+                command.Parameters.AddWithValue("@playername", txtPlayerName.Text);
+                command.Parameters.AddWithValue("@race", txtRace.Text);
+                command.Parameters.AddWithValue("@class", txtClass.Text);
+                command.Parameters.AddWithValue("@str", txtStrength.Text);
+                command.Parameters.AddWithValue("@dex", txtDexterity.Text);
+                command.Parameters.AddWithValue("@int", txtIntelligence.Text);
+                command.Parameters.AddWithValue("@hp", txtHitpoints.Text);
+                command.Parameters.AddWithValue("@CID", txtCID.Text);
+
+                answer = command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have modified " + answer + " character!");
+            }catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnDeleteStats_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //Delete a character in SQL
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                int answer;
+                string sql = "DELETE FROM Character WHERE CharacterID = @CID";
+                command = new SqlCommand(sql, connection);
+
+                command.Parameters.AddWithValue("@CID", txtCID.Text);
+
+                answer = command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have deleted " + answer + " character!");
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnInsertInventory_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //Insert an inventory item into SQL
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                int answer;
+                string sql = "INSERT INTO Inventory VALUES (@CID, @EID, @Adate, @Ldate, @status, @slot)";
+                command = new SqlCommand(sql, connection);
+
+                command.Parameters.AddWithValue("@CID", txtCID.Text);
+                command.Parameters.AddWithValue("@EID", txtEquipName.Text);
+                command.Parameters.AddWithValue("@Adate", txtADate.Text);
+                command.Parameters.AddWithValue("@Ldate", txtLDate.Text);
+                command.Parameters.AddWithValue("@status", txtStatus.Text);
+                command.Parameters.AddWithValue("@slot", txtSlot.Text);
+
+                answer = command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have inserted " + answer + " inventory item!");
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnUpdateInventory_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                int answer;
+                string sql = "UPDATE Inventory SET CharacterID = @CID, EquipmentID=@EID, AcquireDate=@Adate, LossDate=@Ldate, Status=@status, slot=@slot WHERE InventoryID =@IID";
+                command = new SqlCommand(sql, connection);
+
+                command.Parameters.AddWithValue("@CID", txtCID.Text);
+                command.Parameters.AddWithValue("@EID", txtEquipName.Text);
+                command.Parameters.AddWithValue("@Adate", txtADate.Text);
+                command.Parameters.AddWithValue("@Ldate", txtLDate.Text);
+                command.Parameters.AddWithValue("@status", txtStatus.Text);
+                command.Parameters.AddWithValue("@slot", txtSlot.Text);
+                command.Parameters.AddWithValue("@IID", dataGridView1.CurrentRow.Cells[0].Value.ToString());
+
+                answer = command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have updated " + answer + " inventory item!");
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnDeleteInventory_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //This code is for deleting an inventory item
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                int answer;
+                string sql = "DELETE FROM Inventory WHERE InventoryID =@IID";
+                command = new SqlCommand(sql, connection);
+
+                command.Parameters.AddWithValue("@IID", dataGridView1.CurrentRow.Cells[0].Value.ToString());
+
+                answer = command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have deleted " + answer + " inventory item!");
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnRefresh_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //Refresh the form and clear/update everything
+                txtCID.Clear();
+                txtPlayerName.Clear();
+                txtRace.Clear();
+                txtClass.Clear();
+                txtCharacterName.Clear();
+                txtStrength.Clear();
+                txtDexterity.Clear();
+                txtIntelligence.Clear();
+                txtHitpoints.Clear();
+                txtADate.Clear();
+                txtLDate.Clear();
+                txtStatus.Clear();
+                txtSlot.Clear();
+                txtEquipName.Clear();
+                txtSize.Clear();
+                txtType.Clear();
+                txtRarity.Clear();
+                txtItemName.Clear();
+                //Clears the items from the list box
+                listBox1.Items.Clear();
+                //Nullifying the datagrid clears it
+                dataGridView1.DataSource = null;
+                //-1 takes it back to the original indez
+                cmbChar.SelectedIndex = -1;
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+        }
+
+        private void btnInsertEquipment_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //Insert an equipment item into SQL
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                int answer;
+                string sql = "INSERT INTO Equipment VALUES (@Equipname, @type, @size, @rarity)";
+                command = new SqlCommand(sql, connection);
+
+                command.Parameters.AddWithValue("@Equipname", txtItemName.Text);
+                command.Parameters.AddWithValue("@type", txtType.Text);
+                command.Parameters.AddWithValue("@size", txtSize.Text);
+                command.Parameters.AddWithValue("@rarity", txtRarity.Text);
+
+                answer = command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have inserted " + answer + " equipment item!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnUpdateEquipment_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //Update an equipment item into SQL
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                int answer;
+                string sql = "UPDATE Inventory SET EquipmentName =@Equipname, Type=@type, Size=@size, Rarity=@rarity WHERE EquipmentID = @EID";
+                command = new SqlCommand(sql, connection);
+
+                command.Parameters.AddWithValue("@Equipname", txtItemName.Text);
+                command.Parameters.AddWithValue("@type", txtType.Text);
+                command.Parameters.AddWithValue("@size", txtSize.Text);
+                command.Parameters.AddWithValue("@rarity", txtRarity.Text);
+                command.Parameters.AddWithValue("@EID", txtEquipName.Text);
+
+                answer = command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have updated " + answer + " equipment item!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnDeleteEquipment_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //Delete an equipment item from SQL
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                int answer;
+                string sql = "DELETE FROM Equipment WHERE EquipmentID = @EID";
+                command = new SqlCommand(sql, connection);
+
+                command.Parameters.AddWithValue("@EID", txtEquipName.Text);
+
+                answer = command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have deleted " + answer + " equipment item!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error!" + ex);
+            }
+
+            connection.Close();
+            command.Dispose();
+        }
+    }
+}
