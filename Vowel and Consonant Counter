@@ -1,0 +1,27 @@
+#This program tells the user how many consonants and vowels are in the word they typed
+#The user will input the word here
+user_input = input("Type a word here. ")
+#This makes things easier if it is in the same case
+user_input = user_input.lower()
+#This is the list of vowels
+vowels = ["a","o","u","i","e"]
+#For the most part, y is considered a consonant so this variable will be used if y is actually a vowel
+exception = "y"
+#These are the variables that will increase if there are vowels or consonants
+vowelcount = 0
+consonants = 0
+#This is a for loop with an if statement and else statement nested inside. It will check if it is a vowel or consonant
+for letter in user_input:
+    if letter in vowels:
+        vowelcount += 1
+    else:
+        consonants += 1
+#This is to clean up words like myth, by, rythym, and so forth. Words that use Y as an exception
+if vowelcount == 0:
+    for letter in user_input:
+        if letter in exception:
+            vowelcount += 1
+            consonants -= 1
+#This will print how many consonants and vowels are in the word
+print(str(vowelcount) + " vowels.")
+print(str(consonants) + " consonants.")
