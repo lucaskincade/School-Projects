@@ -1,0 +1,24 @@
+#Introduction to the golf course
+print("Welcome to the Bruce Wayne Golf Course. \nPlease fill out the following information.")
+#The next 5 variables are either gathering information or initializing
+customer_name = input("Please enter your first and last name. ")
+customer_time = input("When would you like to tee off? ")
+golfcart = False
+cost = 0
+customer_golfcart = input("Would you be using a golf cart? Please type 'Yes' or 'No'. ")
+#This line is so that I can return the right boolean if it is in any case
+customer_golfcart = customer_golfcart.lower()
+#The next three statements add the correct cost to the corresponding time
+if int(customer_time) > 799 and int(customer_time) < 1199:
+    cost += 50
+elif int(customer_time) > 1199 and int(customer_time) < 1599:
+    cost += 60
+else:
+    cost += 30
+#These two if statements are finding out if a golf cart is needed and then adding the cost
+if customer_golfcart == "yes":
+    golfcart = True
+if golfcart == True:
+    cost += 10
+#Lastly, the information is being returned to the user
+print('\n' + "Name: " + customer_name + '\n'+ "Time: " + str(customer_time) + " hrs" + '\n' + "Cost: " + "$" + str(cost) + ".00" + '\n' + "Golf cart? " + customer_golfcart)
