@@ -1,0 +1,894 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+// This is for use of SQL
+using System.Data.SqlClient;
+
+namespace BlueBox_Project
+{
+    public partial class Form1 : Form
+    {
+        ///////////////////////////////////
+        //Masking login creditials to SQL
+        string connectionString = "Data Source=*******************;Initial Catalog=******************;User ID=****************;Password=***********";
+        SqlConnection connection;
+        SqlCommand command;
+        SqlDataReader datareader;
+        double totalCost;
+        string movieName;
+        string accountNumber;
+        bool recieptButtonClick = false;
+
+        //////////////////////////////////
+
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            this.Width = 880;
+            this.Height = 765;
+            StartPanel.Visible = true;
+            StartPanel.Dock = DockStyle.Fill;
+            quickMenuToolStripMenuItem.Enabled = false;
+            logoutToolStripMenuItem.Enabled = false;
+            accountToolStripMenuItem.Enabled = false;
+        }
+
+        private void Memberbtn_Click(object sender, EventArgs e)
+        {
+            StartPanel.Visible = false;
+            MemberCodePanel.Visible = true;
+            MemberCodePanel.Dock = DockStyle.Fill;
+        }
+
+        private void StartPanel_Paint(object sender, PaintEventArgs e)
+        {
+            StartPanel.Dock = DockStyle.Fill;
+        }
+
+        private void MemberCodePanel_Paint(object sender, PaintEventArgs e)
+        {
+            MemberCodePanel.Dock = DockStyle.Fill;
+        }
+
+
+        private void Submitbtn_Click(object sender, EventArgs e)
+        {
+            //This block of code allows the user to log into their account. Also checks if the fields are correct.
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            string sql = "SELECT email, AccountPassword, AccountID FROM Account WHERE AccountID = (SELECT AccountID FROM Account WHERE email = '"+ txtLoginEmail.Text +"' AND AccountPassword = '"+txtLoginPassword.Text+"')";
+            command = new SqlCommand(sql, connection);
+            datareader = command.ExecuteReader();
+            //Checks to see if the information lines up with SQL
+            if (datareader.HasRows)
+            {
+                while (datareader.Read())
+                {
+
+                    if (datareader[0].ToString() == txtLoginEmail.Text && datareader[1].ToString() == txtLoginPassword.Text)
+                    {
+                        accountNumber = datareader[2].ToString();
+                        MessageBox.Show("Welcome!");
+                        MemberCodePanel.Visible = false;
+                        ShowcasePanel.Visible = true;
+                        ShowcasePanel.Dock = DockStyle.Fill;
+                        logoutToolStripMenuItem.Enabled = true;
+                        accountToolStripMenuItem.Enabled = true;
+                        quickMenuToolStripMenuItem.Enabled = true;
+                        txtLoginEmail.Clear();
+                        txtLoginPassword.Clear();
+                    }
+
+                }
+            }
+            else
+            {
+                MessageBox.Show("Login information was incorrect. Please try again or return to the main menu.");
+                txtLoginEmail.Clear();
+                txtLoginPassword.Clear();
+            }
+
+            connection.Close();
+            command.Dispose();
+            datareader.Close();
+
+        }
+
+        private void ShowcasePanel_Paint(object sender, PaintEventArgs e)
+        {
+            ShowcasePanel.Dock = DockStyle.Fill;
+
+        }
+
+        private void Searchbtn_Click(object sender, EventArgs e)
+        {
+            //This allows the user to search for a title using like terms
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            var sql2 = "SELECT Title, Studio, Genre, Rating FROM Titles WHERE Title LIKE '" + Searchtxtbox.Text + "%'";
+            var da = new SqlDataAdapter(sql2, connection);
+            var ds = new DataSet();
+            da.Fill(ds);
+            dataGridView1.DataSource = ds.Tables[0];
+            
+            
+        }
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            //This populates the add to cart screen
+            MovieNameTxtBox.Text = dataGridView1.CurrentRow.Cells[0].Value.ToString();
+            ShowcasePanel.Visible = false;
+            MovieSelectedPanel.Visible = true;
+            MovieSelectedPanel.Dock = DockStyle.Fill;
+
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            var sql2 = "SELECT * FROM Titles WHERE Title = '" + MovieNameTxtBox.Text + "'";
+            var da = new SqlDataAdapter(sql2, connection);
+            var ds = new DataSet();
+            da.Fill(ds);
+            dataGridView2.DataSource = ds.Tables[0];
+
+            movieName = MovieNameTxtBox.Text;
+        }
+
+        private void dataGridView2_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        //Add to cart button
+        {
+            
+            //Adds the price to the total cost
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            String sql = "SELECT Price FROM Titles WHERE Title = '" + movieName + "'";
+            command = new SqlCommand(sql, connection);
+            datareader = command.ExecuteReader();
+            while(datareader.Read())
+            {
+                totalCost += double.Parse(datareader[0].ToString());
+            }
+
+            connection.Close();
+            command.Dispose();
+            datareader.Close();
+
+            //This adds the title(s) to the list box
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            String sql2 = "SELECT Title FROM Titles WHERE Title = '" + movieName + "'";
+            command = new SqlCommand(sql2, connection);
+            datareader = command.ExecuteReader();
+            while (datareader.Read())
+            {
+                listBoxCart.Items.Add(datareader[0].ToString());
+            }
+
+            connection.Close();
+            command.Dispose();
+            datareader.Close();
+
+            //Checks to see if the user would like to add more items to their cart or go ahead and check out
+            String title = "Cart";
+            String message = "Item was added to cart. Current cart cost is " + totalCost.ToString("C") + ". Would you like to continue shopping?";
+            MessageBoxButtons button = MessageBoxButtons.YesNo;
+            DialogResult result = MessageBox.Show(message, title, button);
+            if(result == DialogResult.Yes)
+            {
+
+
+                MovieSelectedPanel.Visible = false;
+                ShowcasePanel.Visible = true;
+                ShowcasePanel.Dock = DockStyle.Fill;
+            }
+            else
+            {
+                
+                MovieSelectedPanel.Visible = false;
+                ReceiptPanel.Visible = true;
+                ReceiptPanel.Dock = DockStyle.Fill;
+                txtTotalCost.Text = totalCost.ToString("C");
+
+                txtReturnDate.Text = DateTime.Now.AddDays(7).ToString("MMMM dd, yyyy");
+            }
+
+            
+        }
+
+        private void CheckoutPanel_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void listBoxCart_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            //Populates the datagrid with the information of the selected title
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+
+            //Error cathcing with the remove buttom on the list box
+            if (recieptButtonClick == false)
+            {
+                try
+                {
+                    //If a user accidently clicks on the white space on the list box, it won't crash the application with an out of bounds error
+                    if (listBoxCart.SelectedItem != null)
+                    {
+                        var sql2 = "SELECT * FROM Titles WHERE Title = '" + listBoxCart.SelectedItem.ToString() + "'";
+                        var da = new SqlDataAdapter(sql2, connection);
+                        var ds = new DataSet();
+                        da.Fill(ds);
+                        dataGridView3.DataSource = ds.Tables[0];
+
+                        connection.Close();
+                        command.Dispose();
+                    }
+                    else
+                    {
+                        //If the user clicks on the white space, it will automatically set the index to 0
+                        listBoxCart.SelectedIndex = 0;
+                    }
+
+                }
+
+                catch
+                {
+                    listBoxCart.SelectedIndex = 0;
+                }
+            }
+            else
+            {
+                recieptButtonClick = false;
+            }
+            
+        }
+
+        private void btnReciept_Click(object sender, EventArgs e)
+        {
+            //Displays the final message and takes the user to the main menu
+            MessageBox.Show("Thank you for shopping with us! Please return your movie(s) on " + txtReturnDate.Text + ". Please come again.");
+            ReceiptPanel.Visible = false;
+            StartPanel.Visible = true;
+            StartPanel.Dock = DockStyle.Fill;
+            totalCost = 0;
+            listBoxCart.Items.Clear();
+        }
+
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+            String action = "Action/Adventure";
+            //Action picturebox
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            var sql2 = "SELECT Title, Studio, Genre, Rating FROM Titles WHERE Genre = '" + action + "'";
+            var da = new SqlDataAdapter(sql2, connection);
+            var ds = new DataSet();
+            da.Fill(ds);
+            dataGridView1.DataSource = ds.Tables[0];
+        }
+
+        private void pictureBox4_Click(object sender, EventArgs e)
+        {
+            String drama = "Drama";
+            //Drama picturebox
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            var sql2 = "SELECT Title, Studio, Genre, Rating FROM Titles WHERE Genre = '" + drama + "'";
+            var da = new SqlDataAdapter(sql2, connection);
+            var ds = new DataSet();
+            da.Fill(ds);
+            dataGridView1.DataSource = ds.Tables[0];
+        }
+
+        private void pictureBox2_Click(object sender, EventArgs e)
+        {
+            String comedy = "Comedy";
+            //Comedy picturebox
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            var sql2 = "SELECT Title, Studio, Genre, Rating FROM Titles WHERE Genre = '" + comedy + "'";
+            var da = new SqlDataAdapter(sql2, connection);
+            var ds = new DataSet();
+            da.Fill(ds);
+            dataGridView1.DataSource = ds.Tables[0];
+        }
+
+        private void pictureBox5_Click(object sender, EventArgs e)
+        {
+            String horror = "Horror";
+            //Horror picturebox
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            var sql2 = "SELECT Title, Studio, Genre, Rating FROM Titles WHERE Genre = '" + horror + "'";
+            var da = new SqlDataAdapter(sql2, connection);
+            var ds = new DataSet();
+            da.Fill(ds);
+            dataGridView1.DataSource = ds.Tables[0];
+        }
+
+        private void receiptActorDGV_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        //DISREGARD
+       /* private void btnEmployeeLogin_Click(object sender, EventArgs e)
+        {
+            StartPanel.Visible = false;
+            pnlEmployeePortal.Visible = true;
+            pnlEmployeePortal.Dock = DockStyle.Fill;
+
+        }
+       */
+        private void btnEmployeePortalSubmit_Click(object sender, EventArgs e)
+        {
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+
+            //Allows the employee to log into their account
+            string sql2 = "SELECT email, EmployeePassword FROM Employee WHERE EmployeeID = (SELECT EmployeeID FROM Employee WHERE email = '" + txtEmployeeEmail.Text + " ' AND EmployeePassword = '"+txtEmployeePassword.Text+"')";
+            command = new SqlCommand(sql2, connection);
+            datareader = command.ExecuteReader();
+            if(datareader.HasRows)
+            {
+                while (datareader.Read())
+                {
+                    if (datareader[0].ToString() == txtEmployeeEmail.Text && datareader[1].ToString() == txtEmployeePassword.Text)
+                    {
+                        //OLD CODE DISREGARD
+                        // datareader.Close();
+                        //string sql = "SELECT KioskAccess FROM Employee WHERE LastName = '" + txtEmployeePassword.Text + " '";
+                        // command = new SqlCommand(sql, connection);
+                        //datareader1 = command.ExecuteReader();
+                        pnlEmployeePortal.Visible = false;
+                        pnlEmployeeSelect.Visible = true;
+                        pnlEmployeeSelect.Dock = DockStyle.Fill;
+                        MessageBox.Show("Welcome!");
+                        txtEmployeeEmail.Clear();
+                        txtEmployeePassword.Clear();
+                    }
+                    
+                }
+            }
+            else
+            {
+                MessageBox.Show("Invalid login. Please try again.");
+                txtEmployeeEmail.Clear();
+                txtEmployeePassword.Clear();
+            }
+
+            connection.Close();
+            command.Dispose();
+            datareader.Close();
+        }
+
+        private void btnSearch_Click(object sender, EventArgs e)
+        {
+            //Populates the inventory screen with the quantity for every title
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            var sql2 = "SELECT t.Title, i.Quantity FROM Titles t FULL JOIN Inventory i ON t.MediaID = i.MediaID  WHERE t.Title LIKE '" + txtName.Text + "%'";
+            var da = new SqlDataAdapter(sql2, connection);
+            var ds = new DataSet();
+            da.Fill(ds);
+            InventoryDGV.DataSource = ds.Tables[0];
+        }
+
+        private void btnLogout_Click(object sender, EventArgs e)
+        {
+            //Logs out the employee
+            MessageBox.Show("Logged out. Returning to the start up screen.");
+            pnlEmployeeSelect.Visible = false;
+            StartPanel.Visible = true;
+            StartPanel.Dock = DockStyle.Fill;
+        }
+
+        private void btnViewInventory_Click(object sender, EventArgs e)
+        {
+            //Takes the employee to the inventory page
+            pnlEmployeeSelect.Visible = false;
+            pnlInventorySearch.Visible = true;
+            pnlInventorySearch.Dock = DockStyle.Fill;
+        }
+
+        private void btnInventoryBack_Click(object sender, EventArgs e)
+        {
+            //Takes the employee back to the home page
+            pnlInventorySearch.Visible = false;
+            pnlEmployeeSelect.Visible = true;
+            pnlEmployeeSelect.Dock = DockStyle.Fill;
+        }
+
+        private void btnRecordSearch_Click(object sender, EventArgs e)
+        {
+            //Searches for titles to be modified/deleted
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            var sql2 = "SELECT TitleID, Title, Studio, Genre, Rating, Price FROM Titles WHERE Title LIKE '" + txtRecordSearch.Text + "%'";
+            var da = new SqlDataAdapter(sql2, connection);
+            var ds = new DataSet();
+            da.Fill(ds);
+            RecordSearchDGV.DataSource = ds.Tables[0];
+        }
+
+        private void RecordSearchDGV_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            //Populates the text boxes
+            txtRecordTitle.Text = RecordSearchDGV.CurrentRow.Cells[1].Value.ToString();
+            txtRecordStudio.Text = RecordSearchDGV.CurrentRow.Cells[2].Value.ToString();
+            txtRecordGenre.Text = RecordSearchDGV.CurrentRow.Cells[3].Value.ToString();
+            txtRecordRating.Text = RecordSearchDGV.CurrentRow.Cells[4].Value.ToString();
+            txtRecordPrice.Text = RecordSearchDGV.CurrentRow.Cells[5].Value.ToString();
+            txtRecordTitleID.Text = RecordSearchDGV.CurrentRow.Cells[0].Value.ToString();
+
+        }
+
+        private void btnRecordsBack_Click(object sender, EventArgs e)
+        {
+            //Takes the employee back to the home page
+            pnlRecords.Visible = false;
+            pnlEmployeeSelect.Visible = true;
+            pnlEmployeeSelect.Dock = DockStyle.Fill;
+        }
+
+        private void btnRecords_Click(object sender, EventArgs e)
+        {
+            //Takes the employee to the records page
+            pnlRecords.Visible = true;
+            pnlEmployeeSelect.Visible = false;
+            pnlRecords.Dock = DockStyle.Fill;
+        }
+
+        private void btnAddRecord_Click(object sender, EventArgs e)
+        {
+            //Adding movies to the database
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            //The returned integer from SQL
+            int answer;
+            //Placeholder values
+            string sql = "INSERT INTO Titles (Title, Studio, Genre, Rating, Price) VALUES (@title, @studio, @genre, @rating, @price)";
+            command = new SqlCommand(sql, connection);
+
+            //Placeholder values are being initialized and SQL can read them
+            command.Parameters.AddWithValue("@title", txtRecordTitle.Text);
+            command.Parameters.AddWithValue("@studio", txtRecordStudio.Text);
+            command.Parameters.AddWithValue("@genre", txtRecordGenre.Text);
+            command.Parameters.AddWithValue("@rating", txtRecordRating.Text);
+            command.Parameters.AddWithValue("@price", txtRecordPrice.Text);
+
+            answer = command.ExecuteNonQuery();
+
+            MessageBox.Show("Success, you have added " + answer + " movie!");
+
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnUpdateRecord_Click(object sender, EventArgs e)
+        {
+            //Modifying a movie in the database
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            int answer;
+            string sql = "UPDATE Titles SET Title = @title, Studio=@studio, Genre=@genre, Rating=@rating, price=@price WHERE TitleID = @titleID";
+            command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@title", txtRecordTitle.Text);
+            command.Parameters.AddWithValue("@studio", txtRecordStudio.Text);
+            command.Parameters.AddWithValue("@genre", txtRecordGenre.Text);
+            command.Parameters.AddWithValue("@rating", txtRecordRating.Text);
+            command.Parameters.AddWithValue("@price", txtRecordPrice.Text);
+            command.Parameters.AddWithValue("@titleID", txtRecordTitleID.Text);
+
+            answer = command.ExecuteNonQuery();
+
+            MessageBox.Show("Success, you have updated " + answer + " movie!");
+
+            connection.Close();
+            command.Dispose();
+        }
+
+        private void btnDelete_Click(object sender, EventArgs e)
+        {
+            //Deleting a movie from the database
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            int answer;
+            string sql = "DELETE FROM Titles WHERE TitleID = @titleID";
+            command = new SqlCommand(sql, connection);
+
+            command.Parameters.AddWithValue("@titleID", txtRecordTitleID.Text);
+
+            answer = command.ExecuteNonQuery();
+
+            MessageBox.Show("Success, you have deleted " + answer + " movie!");
+        }
+
+        private void btnClear_Click(object sender, EventArgs e)
+        {
+            //Clears the text boxes
+            txtRecordTitle.Clear();
+            txtRecordStudio.Clear();
+            txtRecordGenre.Clear();
+            txtRecordRating.Clear();
+            txtRecordPrice.Clear();
+            txtRecordTitleID.Clear();
+
+        }
+
+        private void menuToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void mainMenuToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //Takes the user back to the main menu
+            StartPanel.Visible = true;
+            pnlEmployeePortal.Visible = false;
+            pnlEmployeeSelect.Visible = false;
+            pnlInventorySearch.Visible = false;
+            ShowcasePanel.Visible = false;
+            
+            MemberCodePanel.Visible = false;
+            ReceiptPanel.Visible = false;
+            MovieSelectedPanel.Visible = false;
+            pnlRecords.Visible = false;
+            pnlCustomerAccount.Visible = false;
+            pnlCreateAccount.Visible = false;
+            StartPanel.Dock = DockStyle.Fill;
+        }
+
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //Closes the application
+            this.Close();
+        }
+
+        private void loginToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //Allows the employee to log into the backend features
+            StartPanel.Visible = false;
+            pnlEmployeeSelect.Visible = false;
+            pnlInventorySearch.Visible = false;
+            pnlRecords.Visible = false;
+            ShowcasePanel.Visible = false;
+            ReceiptPanel.Visible = false;
+            
+            MemberCodePanel.Visible = false;
+            MovieSelectedPanel.Visible = false;
+            pnlCreateAccount.Visible = false;
+            pnlCustomerAccount.Visible = false;
+            pnlEmployeePortal.Visible = true;
+            pnlEmployeePortal.Dock = DockStyle.Fill;
+        }
+
+        private void quickMenuToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void logoutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //Logs the user out of their account
+            String title = "Logout";
+            String message = "Are you sure you want to logout?";
+            MessageBoxButtons button = MessageBoxButtons.YesNo;
+            DialogResult result = MessageBox.Show(message, title, button);
+            if(result == DialogResult.Yes)
+            {
+                MessageBox.Show("Successfully logged out. Returning to main menu.");
+                StartPanel.Visible = true;
+                pnlEmployeePortal.Visible = false;
+                pnlEmployeeSelect.Visible = false;
+                pnlInventorySearch.Visible = false;
+                ShowcasePanel.Visible = false;
+                
+                MemberCodePanel.Visible = false;
+                ReceiptPanel.Visible = false;
+                MovieSelectedPanel.Visible = false;
+                pnlRecords.Visible = false;
+                pnlCustomerAccount.Visible = false;
+                pnlCreateAccount.Visible = false;
+                StartPanel.Dock = DockStyle.Fill;
+                logoutToolStripMenuItem.Enabled = false;
+                accountToolStripMenuItem.Enabled = false;
+                quickMenuToolStripMenuItem.Enabled = false;
+                txtEmployeeEmail.Clear();
+                txtEmployeePassword.Clear();
+                txtEmailAddress.Clear();
+                txtPassword.Clear();
+            }
+            else
+            {
+
+            }
+        }
+
+        private void accountToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //Takes the user to the account page so they can modify their information
+            StartPanel.Visible = false;
+            pnlEmployeePortal.Visible = false;
+            pnlEmployeeSelect.Visible = false;
+            pnlInventorySearch.Visible = false;
+            ShowcasePanel.Visible = false;
+            ReceiptPanel.Visible = false;
+            
+            MemberCodePanel.Visible = false;
+            MovieSelectedPanel.Visible = false;
+            pnlRecords.Visible = false;
+            pnlCustomerAccount.Visible = true;
+            pnlCustomerAccount.Dock = DockStyle.Fill;
+            connection = new SqlConnection(connectionString);
+            connection.Open();
+            string sql = "SELECT * FROM Account WHERE AccountID = '" + accountNumber + " '";
+            command = new SqlCommand(sql, connection);
+            datareader = command.ExecuteReader();
+            while (datareader.Read())
+            {
+                //Translates the SQL columns into text for the textboxes
+                txtAccountID.Text = datareader[0].ToString();
+                txtAccountFirstName.Text = datareader[1].ToString();
+                txtAccountLastName.Text = datareader[2].ToString();
+                txtCreditCardNumber.Text = datareader[3].ToString();
+                txtCVV.Text = datareader[4].ToString();
+                txtBillingZipcode.Text = datareader[5].ToString();
+                txtEmailAddress.Text = datareader[6].ToString();
+                txtPassword.Text = datareader[7].ToString();
+                
+            }
+            connection.Close();
+            command.Dispose();
+            datareader.Close();
+        }
+
+        private void btnCreateAccount_Click(object sender, EventArgs e)
+        {
+            StartPanel.Visible = false;
+            pnlCreateAccount.Visible = true;
+            pnlCreateAccount.Dock = DockStyle.Fill;
+        }
+
+        private void btnAccountCreationSubmit_Click(object sender, EventArgs e)
+        {
+            try
+            {
+
+                //This creates the user's account and insters it into SQL
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+
+                //Placeholder values
+                string sql = "INSERT INTO Account (FirstName, LastName, Email, AccountPassword, PaymentNumber, PaymentCCV, PaymentZipcode) VALUES (@fname, @lname, @em, @pw, @ccn, @cvv, @zip)";
+                command = new SqlCommand(sql, connection);
+
+                //Placeholder values are being initialized and SQL can read them
+                command.Parameters.AddWithValue("@fname", txtAccountCreationFirstName.Text);
+                command.Parameters.AddWithValue("@lname", txtAccountCreationLastName.Text);
+                command.Parameters.AddWithValue("@em", txtAccountCreationEmail.Text);
+                command.Parameters.AddWithValue("@pw", txtAccountCreationPassword.Text);
+                command.Parameters.AddWithValue("@ccn", txtAccountCreationCCN.Text);
+                command.Parameters.AddWithValue("@cvv", txtAccountCreationCVV.Text);
+                command.Parameters.AddWithValue("@zip", txtAccountCreationZip.Text);
+
+                command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have created your account!\nReturning to main menu.");
+
+                connection.Close();
+                command.Dispose();
+
+                pnlCreateAccount.Visible = false;
+                StartPanel.Visible = true;
+                StartPanel.Dock = DockStyle.Fill;
+            }
+            catch
+            {
+                MessageBox.Show("One or more items were entered incorrectly.");
+            }
+        }
+
+        private void btnUpdateAccountInfo_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //This allows the user to update their information
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                string sql = "UPDATE Account SET email = @em, AccountPassword=@pw, PaymentNumber=@ccn, PaymentCCV=@cvv, PaymentZipcode=@zip WHERE AccountID = @aid";
+                command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@em", txtEmailAddress.Text);
+                command.Parameters.AddWithValue("@pw", txtPassword.Text);
+                command.Parameters.AddWithValue("@ccn", txtCreditCardNumber.Text);
+                command.Parameters.AddWithValue("@cvv", txtCVV.Text);
+                command.Parameters.AddWithValue("@zip", txtBillingZipcode.Text);
+                command.Parameters.AddWithValue("@aid", txtAccountID.Text);
+
+                command.ExecuteNonQuery();
+
+                MessageBox.Show("Success, you have updated your account information!\nPlease refer to the quick menu to start selecting titles or logout.");
+
+                connection.Close();
+                command.Dispose();
+            }
+            catch
+            {
+                MessageBox.Show("One or more items were entered incorrectly.");
+            }
+        }
+
+        private void searchToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //This is a quickmenu that takes the user to the search screen
+            StartPanel.Visible = false;
+            pnlEmployeePortal.Visible = false;
+            pnlEmployeeSelect.Visible = false;
+            pnlInventorySearch.Visible = false;
+            ShowcasePanel.Visible = true;
+           
+            ReceiptPanel.Visible = false;
+            MemberCodePanel.Visible = false;
+            MovieSelectedPanel.Visible = false;
+            pnlRecords.Visible = false;
+            pnlCustomerAccount.Visible = false;
+            ShowcasePanel.Dock = DockStyle.Fill;
+        }
+
+        private void cartToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //Takes the user to the cart menu
+            StartPanel.Visible = false;
+            pnlEmployeePortal.Visible = false;
+            pnlEmployeeSelect.Visible = false;
+            pnlInventorySearch.Visible = false;
+            ShowcasePanel.Visible = false;
+            
+            MemberCodePanel.Visible = false;
+            MovieSelectedPanel.Visible = true;
+            ReceiptPanel.Visible = false;
+            pnlRecords.Visible = false;
+            pnlCustomerAccount.Visible = false;
+            MovieSelectedPanel.Dock = DockStyle.Fill;
+        }
+
+        private void checkoutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //Takes the user to the checkout menu
+            StartPanel.Visible = false;
+            pnlEmployeePortal.Visible = false;
+            pnlEmployeeSelect.Visible = false;
+            pnlInventorySearch.Visible = false;
+            ReceiptPanel.Visible = true;
+            ShowcasePanel.Visible = false;
+            
+            MemberCodePanel.Visible = false;
+            MovieSelectedPanel.Visible = false;
+            pnlRecords.Visible = false;
+            pnlCustomerAccount.Visible = false;
+            ReceiptPanel.Dock = DockStyle.Fill;
+        }
+
+        private void txtEmployeeName_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            //This allows the user to remove a movie from checkout
+            recieptButtonClick = true;
+            //Remove from listbox button on receipt panel
+            if (listBoxCart.SelectedIndex > -1)
+            {
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                //Changes the price of the total cost
+
+                string sql = "SELECT Price FROM Titles WHERE Title = '" + listBoxCart.SelectedItem.ToString() + "'";
+                command = new SqlCommand(sql, connection);
+                datareader = command.ExecuteReader();
+                while (datareader.Read())
+                {
+                    totalCost -= Double.Parse(datareader[0].ToString());
+                }
+                txtTotalCost.Text = totalCost.ToString("C");
+                dataGridView3.Refresh();
+                listBoxCart.Items.RemoveAt(listBoxCart.SelectedIndex);
+                MessageBox.Show("Item was removed from your cart.");
+
+                connection.Close();
+                command.Dispose();
+                datareader.Close();
+            }
+
+        }
+
+        private void employeeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        //THE FOLLOW MESSAGE BOXES ARE FOR USER HELP ON EACH PAGE OF THE FORM
+
+        private void btnEmployeePortalHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page is intended for backend use only.\nPlease login with your employee email and password.");
+        }
+
+        private void btnReceiptHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page shows your cart, the description of the selected title(s), return date, and total price.\nYou may remove" +
+                "any title by pressing the 'remove item' button.\nIf you are content with your selection, press 'Checkout' to complete this process.");
+        }
+
+        private void btnShowcaseHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page allows you to search for any title available at Blue Box.\nYou can search for a title or look at titles from " +
+                "our most popular genres.\nPlease click on the movie title to add the movie to your cart.");
+        }
+
+        private void btnMovieSelectedHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page shows your selected item. You can add it to your cart and continue shopping or checkout.");
+        }
+
+        private void btnInventorySearchHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page shows the current inventory of a title at the current kiosk.\nNOTE: This only pertains to kiosks, not streaming.");
+        }
+
+        private void btnEmployeeSelectHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page allows you to check inventory or add/modify/delete titles in the database.\nThis page is intended for employees only.");
+        }
+
+        private void btnStartPanelHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("Welcome to Blue Box.\nExisting users can log into their account and new users can create an account.\nFor " +
+                "employees, please refer to the 'employee' tab at the top of this page.");
+        }
+
+        private void btnRecordsHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page allows the employee to add, modify, or delete records.\nPress the movie title to select it.\nPress clear to remove the text fields.");
+        }
+
+        private void btnAccountCreationHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page allows you to create an account.\nPlease enter your information and click 'submit'.");
+        }
+
+        private void btnMemberLoginHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page allows you to log into Blue Box.\nPlease enter your email and password and click 'submit'.");
+        }
+
+        private void btnCustomerAccountHelp_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("This page allows you to view your account information and make modifications.\nNote: You are only able to modify your " +
+                "email address, password, and billing information.\nClick 'Update' to update your account.");
+        }
+
+        private void whatsThisToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("The quick menu allows a user who is logged in to quickly navigate the interface.");
+        }
+    }
+}
